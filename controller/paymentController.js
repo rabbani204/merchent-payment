@@ -4,17 +4,20 @@ import { MERC_MENU_REL, MERCHANT_MENU, PROFILE_MERCHANT } from '../models'
 import { tokenVerify } from '../middleware'
 require('dotenv').config()
 import axios from 'axios'
-var convert = require('xml-js');
 const router = express.Router()
+
+import xmlToJson from 'xml-to-json-stream'
+const parser = xmlToJson({attributeMode:false});
 
 
 router.post('/soap/accountdetails', async (req, res) => {
     try {
+        let { accountNum } = req.body
         let xmls = `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:bil="http://www.dwcorp.com/BillMasterWebAccessWebService/">
         <soapenv:Header/>
         <soapenv:Body>
            <bil:GetAccount>
-              <bil:sAcctNum>10000101</bil:sAcctNum>
+              <bil:sAcctNum>${accountNum}</bil:sAcctNum>
            </bil:GetAccount>
         </soapenv:Body>
      </soapenv:Envelope>`
@@ -24,12 +27,17 @@ router.post('/soap/accountdetails', async (req, res) => {
             {
                 headers: {
                     Authorization: `Basic ${Buffer.from('APIUser' + ":" + 'd@t@We3t').toString('base64')}`,
-                    "Content-Type" : "text/xml"
+                    "Content-Type": "text/xml"
                 }
             }).then(ress => {
-                console.log(ress.data)
-                var result = convert.xml2json(ress.data, {compact: true, spaces: 4});
-                return res.status(200).send(OK(result, null, req))
+                parser.xmlToJson(ress.data, (err,json)=>{
+                    if(err) {
+                        return res.status(500).send(INTERNAL_SERVER_ERROR(null, req))
+                    }
+                 
+                    return res.status(200).send(OK(json, null, req))
+                });
+
             }).catch(err => {
                 console.log(err, 'error from err')
                 return res.status(500).send(INTERNAL_SERVER_ERROR(null, req))
@@ -42,11 +50,11 @@ router.post('/soap/accountdetails', async (req, res) => {
 })
 
 
-router.post('/soap/payment', (req, res)=>{
+router.post('/soap/payment', (req, res) => {
     try {
-        let {sAcctNum, dPayAmt, dFeeAmt, paymentType, sReferenceNum} = req.body
+        let { sAcctNum, dPayAmt, dFeeAmt, paymentType, sReferenceNum } = req.body
         // console.log(sAcctNum, dPayAmt, dFeeAmt, sReferenceNum)
-        let xmls =`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:bil="http://www.dwcorp.com/BillMasterWebAccessWebService/">
+        let xmls = `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:bil="http://www.dwcorp.com/BillMasterWebAccessWebService/">
         <soapenv:Header/>
         <soapenv:Body>
            <bil:PostPayment>
@@ -66,12 +74,17 @@ router.post('/soap/payment', (req, res)=>{
             {
                 headers: {
                     Authorization: `Basic ${Buffer.from('APIUser' + ":" + 'd@t@We3t').toString('base64')}`,
-                    "Content-Type" : "text/xml"
+                    "Content-Type": "text/xml"
                 }
             }).then(ress => {
-                var result = convert.xml2json(ress.data, {compact: true, spaces: 4});
-                console.log(result)
-                return res.status(200).send(OK(result, null, req))
+                parser.xmlToJson(ress.data, (err,json)=>{
+                    if(err) {
+                        return res.status(500).send(INTERNAL_SERVER_ERROR(null, req))
+                    }
+                 
+                    return res.status(200).send(OK(json, null, req))
+                });
+                
             }).catch(err => {
                 console.log(err, 'error')
                 return res.status(500).send(INTERNAL_SERVER_ERROR(null, req))

@@ -22,7 +22,7 @@
     "morgan": "^1.9.1",
     "sequelize": "^5.21.3",
     "tedious": "^9.2.3",
-    "xml-js": "^1.6.11"
+    "xml-to-json-stream": "^1.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.8.3",
